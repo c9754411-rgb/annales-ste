@@ -410,6 +410,32 @@ mark.rdhl{position:absolute;background:rgba(255,214,0,.45);border-radius:3px;mix
 @media(max-width:520px){.gx td.nw{white-space:normal}}
 .sidetg{display:none;flex:none}
 @media(min-width:900px){.sidetg{display:grid}.qz.noside{grid-template-columns:1fr;max-width:1100px}.qz.noside .side{display:none}.qz.noside .strip{display:flex}.qz.noside .mtimer{display:inline}}
+
+/* v31 : lisibilité tablette / téléphone */
+.hdr{padding-top:8px!important;padding-bottom:8px!important;min-height:54px}
+.hdr .logo{width:36px!important;height:36px!important}
+.hdr .tt b{font-size:1rem!important} .hdr .tt span{font-size:.74rem!important}
+.sb{top:54px;height:calc(100dvh - 54px)} .lay{min-height:calc(100dvh - 54px)}
+.hdr{transition:transform .18s ease}
+.why{font-size:1rem}
+.gx{font-size:1.06rem}
+.qz main{min-height:calc(100dvh + 24px)}
+@media(max-width:1100px){
+ .casebox{font-size:1.04rem;line-height:1.55}
+ .casebox summary{font-size:1.02rem}
+ .stem{font-size:1.14rem}
+ .pill{font-size:.8rem}
+ .comm h3{font-size:1.18rem}
+ .why{font-size:1.04rem}
+ .gx{font-size:1.1rem}
+ .note{font-size:.95rem}
+}
+@media(max-width:620px){
+ .hdr{min-height:52px} .hdr .tt b{font-size:.84rem!important} .hdr .tt span{font-size:.68rem!important}
+ .hbtn{width:34px!important;height:34px!important}
+ .sb{top:52px;height:calc(100dvh - 52px)}
+ .gx{font-size:1.04rem} .why{font-size:1rem} .casebox{font-size:1.02rem}
+}
 </style>
 
 </head><body>
@@ -487,7 +513,7 @@ const S={view:'home', theme:LS.get('mt_theme',null), sound:LS.get('mt_sound',tru
   mode:LS.get('mt_mode','rev'), dur:LS.get('mt_dur',0), order:LS.get('mt_order2','annee'), eorder:LS.get('mt_eorder','exam'), hist:LS.get('mt_hist',{}), fav:new Set(LS.get('mt_fav',[])), notes:LS.get('mt_notes',{}),
   drop:null, dq:'', zoom:null, sess:LS.get('mt_last',null), open:new Set(), hideT:new Set(), shownote:false, hl:LS.get('mt_hl',{}), noside:LS.get('mt_noside',false), sbOpen:false, sbMini:LS.get('mt_sbmini',false), pen:null, hlbar:false, hlc:LS.get('mt_hlc','#ffe066'), flk:LS.get('mt_flk',{}), fdeck:LS.get('mt_fdeck','exam'), fdir:LS.get('mt_fdir','num'), fl:null};
 if(!Array.isArray(S.fcs)) S.fcs=[];
-if(S.theme) document.documentElement.dataset.theme=S.theme;
+document.documentElement.dataset.theme=S.theme||'light';
 S.acc=LS.get('mt_acc',''); if(S.acc) document.documentElement.dataset.acc=S.acc;
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
 /* sons (extraits de la vidéo) */
@@ -861,7 +887,7 @@ async function paintReader(){ const R=S.rd, tk=++RDT; const box=document.getElem
   box.innerHTML=''; box.appendChild(wrap); if(msg) msg.textContent=hits?`${hits} occurrence${hits>1?'s':''} surlignée${hits>1?'s':''} sur cette page`:(R.w.length?'Mot non trouvé sur cette page : essayez la page voisine.':'');
   if(first) setTimeout(()=>{ const r=first.getBoundingClientRect(); scrollTo(0,scrollY+r.top-innerHeight/3); box.scrollLeft=Math.max(0,first.offsetLeft-box.clientWidth/3); },60); }
 function L_mul(a,b){ return [a[0]*b[0]+a[2]*b[1],a[1]*b[0]+a[3]*b[1],a[0]*b[2]+a[2]*b[3],a[1]*b[2]+a[3]*b[3],a[0]*b[4]+a[2]*b[5]+a[4],a[1]*b[4]+a[3]*b[5]+a[5]]; }
-function vSearch(){ loadCourses(); return `${header()}<div class="wrap"><div class="card"><p class="sec">§search§ Recherche dans les annales et les cours</p>
+function vSearch(){ loadCourses(); return `${header()}<div class="wrap"><div class="card"><p class="sec">§search§ Recherche dans les examens et les cours</p>
   <div class="sbox">${ico('search',20)}<input id="gs" type="search" placeholder="Rechercher : amiante, 21 jours, plombémie, TMP 42…" value="${esc(S.gq||'')}" autocomplete="off"></div>
   <div id="gsres" style="margin-top:14px">${searchBody()}</div></div><div class="foot">© BABAAISSA Zakaria</div></div>`; }
 const fsOK=()=>!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
