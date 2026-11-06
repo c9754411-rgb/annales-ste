@@ -530,6 +530,20 @@ kbd{display:inline-block;min-width:1.6em;text-align:center;padding:.15em .45em;b
 :root[data-theme="dark"] .astuce{background:rgba(255,255,255,.045)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .astuce{background:rgba(255,255,255,.045)}}
 @media(max-width:860px){.astuce{padding:10px 12px}.astuce .at{font-size:.97rem}}
+
+/* lacunes */
+.sbar{display:flex;height:9px;border-radius:7px;overflow:hidden;background:var(--surface2);box-shadow:inset 0 0 0 1px var(--line)}
+.sbar i{display:block;height:100%}
+.mt .sbar{width:100%;height:6px;margin-top:6px;box-shadow:none;background:rgba(255,255,255,.55)}
+.lchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px;margin-top:12px}
+.lch{display:flex;align-items:center;gap:9px;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 11px;text-align:left;color:inherit}
+.lch:hover{border-color:var(--acc3);transform:translateY(-1px)}
+.lch i{width:10px;height:28px;border-radius:5px;flex:none}
+.lch b{font-size:1.3rem;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.lch span{display:flex;flex-direction:column;font-size:.86rem;font-weight:700;line-height:1.2;min-width:0}
+.lch small{font-weight:500;font-size:.71rem;color:var(--muted);white-space:normal;line-height:1.25}
+.lch.off{opacity:.45;cursor:default}.lch.off:hover{transform:none;border-color:var(--line)}
+.mt{min-height:78px}
 </style>
 
 </head><body>
@@ -658,12 +672,12 @@ function validate(){
   const s=S.sess, q=cur(); const sel=s.sel[q.id]||{}; if(s.ans[q.id]&&s.mode==='rev') return;
   const a = q.type==='match' ? {m:sel.m||{}} : {ch:sel.ch||[]};
   a.ok=gradeQ(q,a); s.ans[q.id]=a;
-  if(s.mode==='rev'){ S.hist[q.id]={ok:a.ok,at:Date.now()}; LS.set('mt_hist',S.hist); play(a.ok?'ok':'ko'); }
+  if(s.mode==='rev'){ histSet(q.id,a.ok); LS.set('mt_hist',S.hist); play(a.ok?'ok':'ko'); }
   save(); render(true);
 }
 function finishExam(){
   const s=S.sess; s.finished=true;
-  for(const id of s.ids){ const q=QI[id]; const sel=s.sel[id]; if(!s.ans[id] && sel){ const a=q.type==='match'?{m:sel.m||{}}:{ch:sel.ch||[]}; a.ok=gradeQ(q,a); s.ans[id]=a; } if(s.ans[id]){ S.hist[id]={ok:s.ans[id].ok,at:Date.now()}; } }
+  for(const id of s.ids){ const q=QI[id]; const sel=s.sel[id]; if(!s.ans[id] && sel){ const a=q.type==='match'?{m:sel.m||{}}:{ch:sel.ch||[]}; a.ok=gradeQ(q,a); s.ans[id]=a; } if(s.ans[id]){ histSet(id,s.ans[id].ok); } }
   LS.set('mt_hist',S.hist); save(); S.view='end'; render(); scrollTo(0,0);
 }
 /* ---------- vues ---------- */
@@ -797,10 +811,11 @@ function weak(){
   return Object.entries(by).sort((a,b)=>a[1][0]/a[1][1]-b[1][0]/b[1][1]).slice(0,5).map(([c,[o,t]])=>bar(CN[c],o,t)).join('');
 }
 const bar=(n,o,t)=>{const p=Math.round(o/t*100);return `<div class="brow"><span>${esc(n)}</span><div class="bar"><i style="width:${p}%;background:${p>=70?'var(--good)':p>=50?'var(--orange)':'var(--bad)'}"></i></div><span style="flex:none;width:3.6em;text-align:right">${o}/${t}</span></div>`};
-function courseRows(){
+function courseRows(all){
   return COURSES.filter(([k])=>Q.some(q=>q.c===k)).map(([k,n])=>{
-    const qs=Q.filter(q=>q.c===k&&!q.exam.startsWith('blanc')); const per=REALEX.map(([e])=>qs.filter(q=>q.exam===e).length);
-    const h=qs.filter(q=>S.hist[q.id]); return {k,n,tot:qs.length,per,inEx:per.filter(x=>x).length,cases:qs.filter(q=>q.case).length,done:h.length,ok:h.filter(q=>S.hist[q.id].ok).length};
+    const qs=Q.filter(q=>q.c===k&&(all||!q.exam.startsWith('blanc'))); const per=REALEX.map(([e])=>qs.filter(q=>q.exam===e).length);
+    const h=qs.filter(q=>S.hist[q.id]); const c={acq:0,frg:0,ko:0,non:0}; qs.forEach(q=>c[qState(q.id)]++);
+    return {k,n,tot:qs.length,per,inEx:per.filter(x=>x).length,cases:qs.filter(q=>q.case).length,done:h.length,ok:h.filter(q=>S.hist[q.id].ok).length,c};
   });
 }
 function vCourses(){
@@ -838,16 +853,34 @@ function vStats(){
 }
 
 /* ---------- maîtrise ---------- */
+function histSet(id,ok){ const p=S.hist[id]; S.hist[id]={ok,at:Date.now(),f:(p&&p.f!==undefined)?p.f:ok,n:((p&&p.n)||0)+1}; }
+/* état d'une question : acq = juste du 1er coup · frg = rattrapée · ko = encore fausse · non = jamais faite */
+function qState(id){ const h=S.hist[id]; if(!h) return 'non'; if(!h.ok) return 'ko'; return h.f===false?'frg':'acq'; }
+const LACS=[['acq','Acquises','du premier coup','var(--good)'],['frg','Fragiles','justes après une erreur','var(--orange)'],['ko','À revoir','encore fausses','var(--bad)'],['non','Jamais faites','jamais tentées','#aab0c6']];
+function lacIds(st){ return Q.filter(q=>st.includes(qState(q.id))).map(q=>q.id); }
+function sbar(c,tot){ return `<div class="sbar">${LACS.map(([k,,,col])=>c[k]?`<i style="width:${c[k]/tot*100}%;background:${col}" title="${c[k]}"></i>`:'').join('')}</div>`; }
+
 function mastColor(r){ if(r===null) return 'var(--surface2)'; const h=Math.round(r*125); return `hsl(${h} 78% ${r<.5?82:76}%)`; }
 function mastery(){
-  const rows=courseRows().sort((a,b)=>a.n.localeCompare(b.n,'fr'));
-  const okAll=Q.filter(q=>S.hist[q.id]&&S.hist[q.id].ok).length; const pc=Math.round(okAll/Q.length*100);
-  return `<div class="card"><p class="sec">Ma maîtrise des cours</p>
-   <div class="row" style="gap:14px;margin-bottom:12px"><div class="mring" style="--v:${pc}"><div>${pc}%</div></div>
-   <div style="flex:1;min-width:160px"><b>${okAll} / ${Q.length}</b> questions réussies<div class="muted" style="font-size:.82rem">Chaque case = un cours. Touchez pour réviser ce cours.</div></div></div>
-   <div class="mast">${rows.map(r=>{ const m=r.done?r.ok/r.tot:null; const cov=r.done/r.tot;
-     return `<button class="mt" data-a="mcourse" data-v="${r.k}" style="background:${mastColor(r.done?r.ok/r.done:null)};${r.done?'':'color:var(--ink)'}" title="${esc(r.n)}"><span>${esc(r.n.replace(/ \(.*\)/,''))}</span><span><b>${r.done?Math.round(r.ok/r.done*100)+'%':'—'}</b> <small>${r.done}/${r.tot} faites</small></span><span class="pb" style="width:${Math.round(cov*100)}%"></span></button>`}).join('')}</div>
-   <div class="mleg"><span><i style="background:var(--surface2);border:1px solid var(--line)"></i>pas commencé</span><span><i style="background:${mastColor(.2)}"></i>&lt; 50 %</span><span><i style="background:${mastColor(.6)}"></i>50–80 %</span><span><i style="background:${mastColor(1)}"></i>&gt; 80 %</span><span>barre = part du cours déjà faite</span></div></div>`;
+  const rows=courseRows(1).sort((a,b)=>a.n.localeCompare(b.n,'fr'));
+  const C={acq:0,frg:0,ko:0,non:0}; rows.forEach(r=>LACS.forEach(([k])=>C[k]+=r.c[k]));
+  const tot=Q.length, lac=tot-C.acq, pc=Math.round(C.acq/tot*100);
+  const chip=([k,t,d,col])=>`<button class="lch${C[k]?'':' off'}" data-a="lac" data-v="${k}" ${C[k]?'':'disabled'}>
+    <i style="background:${col}"></i><b>${C[k]}</b><span>${t}<small>${d}</small></span></button>`;
+  return `<div class="card"><p class="sec">${ico('grid',19,'ii')}Ma maîtrise</p>
+   <div class="row" style="gap:16px;margin-bottom:14px"><div class="mring" style="--v:${pc}"><div>${pc}%</div></div>
+   <div style="flex:1;min-width:170px"><b style="font-size:1.25rem">${C.acq} / ${tot}</b> acquises du premier coup
+     <div class="muted" style="font-size:.86rem;margin-top:2px">Il reste <b style="color:var(--bad)">${lac} lacunes</b> : questions jamais faites, encore fausses, ou ratées au premier essai.</div></div></div>
+   ${sbar(C,tot)}
+   <div class="lchips">${LACS.map(chip).join('')}</div>
+   ${lac?`<button class="go" style="margin-top:12px" data-a="lac" data-v="frg,ko,non">${ico('play',18,'ii')} Réviser mes ${lac} lacunes</button>`:'<p class="muted" style="margin-top:12px">Tout est acquis du premier coup. Bravo.</p>'}
+   <p class="lbl" style="margin-top:20px">Par cours</p>
+   <div class="mast">${rows.map(r=>{ const m=r.c.acq/r.tot, l=r.tot-r.c.acq;
+     return `<button class="mt" data-a="mcourse" data-v="${r.k}" style="background:${mastColor(r.done?m:null)};${r.done?'':'color:var(--ink)'}" title="${esc(r.n)} — ${r.c.acq} acquises, ${r.c.frg} fragiles, ${r.c.ko} à revoir, ${r.c.non} jamais faites">
+       <span>${esc(r.n.replace(/ \(.*\)/,''))}</span>
+       <span><b>${Math.round(m*100)}%</b> <small>${l?l+' lacune'+(l>1?'s':''):'tout acquis'}</small></span>
+       ${sbar(r.c,r.tot)}</button>`}).join('')}</div>
+   <div class="mleg">${LACS.map(([,t,,col])=>`<span><i style="background:${col}"></i>${t}</span>`).join('')}</div></div>`;
 }
 /* ---------- flashcards TMP ---------- */
 const GRP={1:['Groupe 1','Intoxications · liste indicative'],2:['Groupe 2','Infections · liste limitative'],3:['Groupe 3','Ambiances & attitudes · liste limitative']};
@@ -1279,6 +1312,9 @@ function act(a,v,el,ev){
       if(v==='wrong'||v==='favs'||v==='noted'){ act(v); return; }
       if(v==='flash'){ S.fl=null; }
       S.view=v; render(); scrollTo(0,0); return; }
+    case 'lac': { const st=v.split(','); let l=lacIds(st); if(!l.length){ toast('Aucune question dans cette catégorie'); return; }
+      const nm=st.length>1?('Mes lacunes ('+l.length+')'):(LACS.find(x=>x[0]===st[0])[1]);
+      newSession(ordered(l.map(i=>QI[i]),S.order),nm); return; }
     case 'mcourse': S.by='cours'; S.fcs=[v]; S.fy=''; LS.set('mt_by2','cours'); LS.set('mt_fcs',S.fcs); LS.set('mt_fy',''); newSession(ordered(poolC([v],'',S.ft),S.order),CN[v]); return;
     case 'flash': S.view='flash'; S.fl=null; render(); scrollTo(0,0); return;
     case 'fdeck': S.fdeck=v; LS.set('mt_fdeck',v); S.fl=null; render(true); return;
