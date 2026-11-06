@@ -436,6 +436,31 @@ mark.rdhl{position:absolute;background:rgba(255,214,0,.45);border-radius:3px;mix
  .sb{top:52px;height:calc(100dvh - 52px)}
  .gx{font-size:1.04rem} .why{font-size:1rem} .casebox{font-size:1.02rem}
 }
+
+/* sessions */
+.lk{background:none;border:0;color:var(--sky);font-weight:800;font-size:.82rem;cursor:pointer;padding:0;text-transform:none;letter-spacing:0}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:14px;margin-top:14px}
+.scard{margin:0!important}
+.sch{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.sch b{display:block;font-size:1.02rem;line-height:1.3}.sch span{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
+.ib{border:0;background:none;font-size:1.4rem;line-height:1;color:var(--orange);cursor:pointer;padding:2px 4px}
+.scb{display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.scb .donut{width:120px;font-size:.95rem}
+.scr{flex:1;min-width:190px}
+.sct{font-size:2rem;font-weight:900;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--bad)}
+.mdl{position:fixed;inset:0;z-index:80;background:rgba(10,12,30,.55);display:grid;place-items:center;padding:16px}
+.mbox{background:var(--surface);color:var(--ink);border-radius:16px;padding:22px;width:min(100%,460px);max-height:92dvh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.mbox h3{margin:0;font-size:1.3rem}
+.btn.mb{display:block;width:100%;margin:8px 0;text-align:center;background:var(--surface);border:1.5px solid var(--line);color:var(--ink);font-weight:700}
+.btn.mb small{display:block;font-weight:500;opacity:.75;font-size:.78rem}
+.btn.mb.mg{color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent)}
+.btn.mb.mr{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.btn.mb.ms{color:var(--sky);border-color:color-mix(in srgb,var(--sky) 45%,transparent)}
+.btn.mb.mbad{color:var(--orange2);border-color:color-mix(in srgb,var(--orange) 50%,transparent)}
+.btn.mb.mx{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.mb[disabled]{opacity:.4}
+.mor{text-align:center;color:var(--muted);font-size:.82rem;margin:10px 0 2px}
 </style>
 
 </head><body>
@@ -546,7 +571,9 @@ function newSession(ids,title){
   const sess={ids, i:0, ans:{}, sel:{}, mode:S.mode, title, start:Date.now(), qstart:Date.now(), end:S.mode==='exam'?Date.now()+(S.dur||ids.length)*60000:0, finished:false, review:false};
   S.sess=sess; save(); S.view='quiz'; S.open=new Set(); render(); scrollTo(0,0);
 }
-const save=()=>LS.set('mt_last',S.sess);
+const sessList=()=>{ let L=LS.get('mt_sessions',null); if(!Array.isArray(L)){ L=[]; const l=LS.get('mt_last',null); if(l&&l.ids) L.push(l); LS.set('mt_sessions',L);} return L; };
+const save=()=>{ const s=S.sess; LS.set('mt_last',s); if(!s||!s.ids) return; const L=sessList(); const k=L.findIndex(x=>x.start===s.start); if(k>=0) L[k]=s; else L.unshift(s); L.sort((a,b)=>(b.last||b.start)-(a.last||a.start)); LS.set('mt_sessions',L.slice(0,80)); };
+const sessStat=x=>{ const n=x.ids.length, an=x.ids.filter(i=>x.ans[i]), g=an.filter(i=>x.ans[i].ok).length; return {n,g,r:an.length-g,a:an.length}; };
 const cur=()=>QI[S.sess.ids[S.sess.i]];
 const showCorr=()=>S.sess.mode==='rev'||S.sess.finished;
 function correctOf(q){ return new Set(q.key||[]); }
@@ -589,6 +616,7 @@ function sidebar(){
    ${it('nav','exam','exam','Session par examen',false)}
    ${it('nav','flash','cards','Flashcards TMP',v==='flash')}
    <div class="grp">Suivi</div>
+   ${it('nav','sessions','clock','Mes sessions',v==='sessions',sessList().length||'')}
    ${it('nav','mastery','grid','Ma maîtrise',v==='mastery')}
    ${it('nav','stats','chart','Statistiques',v==='stats')}
    ${it('nav','wrong','err','Mes erreurs',false,wrong||'')}
@@ -647,7 +675,7 @@ function vHome(){
   const p=pool();
   const ls=S.sess; let last='';
   if(ls&&ls.ids){ const an=ls.ids.filter(i=>ls.ans[i]); const g=an.filter(i=>ls.ans[i].ok).length; const r=an.length-g; const n=ls.ids.length;
-    last=`<div class="card"><p class="sec">Votre dernière session</p><div class="last">
+    last=`<div class="card"><p class="sec" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">Votre dernière session<button class="lk" data-a="nav" data-v="sessions">Toutes mes sessions (${sessList().length}) →</button></p><div class="last">
       <div class="donut" style="--g:${g/n*100};--r:${r/n*100}"><div><div>${g}/${n}<br>${Math.round(g/n*100)} %</div></div></div>
       <div style="flex:1;min-width:180px"><div style="font-weight:700">${esc(ls.title)}</div><div class="muted" style="font-size:.85rem">${new Date(ls.start).toLocaleString('fr-FR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})} · ${ls.mode==='exam'?'Mode examen':'Mode révision'}</div>
       <div class="row" style="margin-top:12px"><button class="btn green" data-a="resume">§play§ ${ls.finished?'Revoir':'Reprendre'}</button>${ls.finished||an.length?`<button class="btn" data-a="result">§chart§ Résultats</button>`:''}</div></div></div></div>`; }
@@ -812,6 +840,7 @@ function restoreProgress(){ const i=document.createElement('input'); i.type='fil
       { const a=cur('mt_hl')||{}, b=inc('mt_hl')||{}; for(const [k,L] of Object.entries(b)){ const seen=new Set((a[k]||[]).map(x=>JSON.stringify(x))); a[k]=(a[k]||[]).concat(L.filter(x=>!seen.has(JSON.stringify(x)))); } put('mt_hl',a); }
       { const a=cur('mt_flk')||{}, b=inc('mt_flk')||{}; Object.assign(a,b); put('mt_flk',a); }
       { const a=cur('mt_last'), b=inc('mt_last'); if(b&&(!a||(b.start||0)>(a.start||0))) put('mt_last',b); }
+      { const a=cur('mt_sessions')||[], b=inc('mt_sessions')||[]; const M=new Map(a.map(x=>[x.start,x])); for(const x of b){ const y=M.get(x.start); if(!y||(x.last||0)>(y.last||0)) M.set(x.start,x); } put('mt_sessions',[...M.values()].sort((p,q)=>(q.last||q.start)-(p.last||p.start)).slice(0,80)); }
       for(const [k,v] of Object.entries(o.data)) if(localStorage.getItem(k)===null) localStorage.setItem(k,v);
       const tot=Object.keys(cur('mt_hist')||{}).length;
       localStorage.setItem('mt_lastsave',JSON.stringify({at:Date.now(),n:o.n||0}));
@@ -991,6 +1020,30 @@ function vQuiz(){
   h+=`</main></div>`;
   return h;
 }
+function vSessions(){
+  const L=sessList(); const d=t=>new Date(t).toLocaleString('fr-FR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const cards=L.map(x=>{ const t=sessStat(x), pct=Math.round(t.g/t.n*100);
+    return `<div class="card scard">
+     <div class="sch"><div><b>${esc(x.title)}</b><span>${d(x.start)} · ${x.mode==='exam'?'Mode examen':'Mode révision'}${x.finished?' · terminée':''}</span></div>
+      <button class="ib ${x.star?'on':''}" data-a="sstar" data-v="${x.start}" title="Favorite">${x.star?'★':'☆'}</button></div>
+     <div class="scb"><div class="donut" style="--g:${t.g/t.n*100};--r:${t.r/t.n*100}"><div><div>${t.g}/${t.n}<br>${pct} %</div></div></div>
+      <div class="scr"><div class="sct">${fmt(x.spent||0)}</div><div class="muted" style="font-size:.8rem">${t.a}/${t.n} répondues · <span style="color:var(--good)">${t.g} juste${t.g>1?'s':''}</span> · <span style="color:var(--bad)">${t.r} fausse${t.r>1?'s':''}</span></div>
+       <div class="row" style="margin-top:10px;gap:8px"><button class="btn green" data-a="sopen" data-v="${x.start}">§play§ ${x.finished?'Revoir':'Continuer'}</button><button class="btn" data-a="srep" data-v="${x.start}">↻ Répéter</button>${t.a?`<button class="btn" data-a="sres" data-v="${x.start}">§chart§</button>`:''}<button class="btn ghost" data-a="sdel" data-v="${x.start}" title="Supprimer">${S.sdel===x.start?'Confirmer ?':'🗑'}</button></div></div></div></div>`; }).join('');
+  let m='';
+  const r=S.srep&&L.find(x=>x.start===S.srep);
+  if(r){ const t=sessStat(r), un=t.n-t.a;
+    m=`<div class="mdl" data-a="srepx"><div class="mbox" data-a="nop"><h3>Répéter une session</h3><p class="muted" style="margin:.2em 0 1em">${esc(r.title)}</p>
+     <button class="btn mb" data-a="sredo" data-v="reset">Réinitialiser cette session <small>(${t.n} questions, tout recommencer)</small></button>
+     <div class="mor">ou créer une nouvelle session avec</div>
+     <button class="btn mb mg" data-a="sredo" data-v="ok" ${t.g?'':'disabled'}>Les questions répondues justes <small>(${t.g})</small></button>
+     <button class="btn mb mr" data-a="sredo" data-v="ko" ${t.r?'':'disabled'}>Les questions répondues fausses <small>(${t.r})</small></button>
+     <button class="btn mb ms" data-a="sredo" data-v="un" ${un?'':'disabled'}>Les questions non répondues <small>(${un})</small></button>
+     <button class="btn mb mbad" data-a="sredo" data-v="kun" ${t.r+un?'':'disabled'}>Fausses + non répondues <small>(${t.r+un})</small></button>
+     <button class="btn mb" data-a="sredo" data-v="all">Garder toutes les questions <small>(${t.n}, nouvelle session)</small></button>
+     <button class="btn mb mx" data-a="srepx">Annuler</button></div></div>`; }
+  return `${header()}<div class="wrap"><div class="card"><p class="sec">§clock§ Mes sessions</p><p class="muted" style="margin:0">${L.length?`${L.length} session${L.length>1?'s':''} enregistrée${L.length>1?'s':''} sur cet appareil. Touchez « Continuer » pour reprendre là où vous vous êtes arrêté.`:'Aucune session pour l’instant : commencez-en une depuis l’accueil.'}</p></div>
+   <div class="sgrid">${cards}</div></div>${m}`;
+}
 function vEnd(){
   const s=S.sess, ids=s.ids, an=ids.filter(i=>s.ans[i]), ok=an.filter(i=>s.ans[i].ok).length, n=ids.length, pct=Math.round(ok/n*100);
   const by={}; ids.forEach(i=>{const c=QI[i].c; by[c]=by[c]||[0,0]; by[c][1]++; if(s.ans[i]&&s.ans[i].ok) by[c][0]++;});
@@ -1005,7 +1058,7 @@ function vEnd(){
   <div class="foot">© BABAAISSA Zakaria</div></div>`;
 }
 function render(keep){
-  const y=scrollY; let h=S.view==='home'?vHome():S.view==='quiz'?vQuiz():S.view==='stats'?vStats():S.view==='courses'?vCourses():S.view==='flash'?vFlash():S.view==='mastery'?vMastery():S.view==='docs'?vDocs():S.view==='search'?vSearch():S.view==='reader'?vReader():vEnd();
+  const y=scrollY; let h=S.view==='home'?vHome():S.view==='quiz'?vQuiz():S.view==='stats'?vStats():S.view==='courses'?vCourses():S.view==='flash'?vFlash():S.view==='mastery'?vMastery():S.view==='docs'?vDocs():S.view==='search'?vSearch():S.view==='reader'?vReader():S.view==='sessions'?vSessions():vEnd();
   const hd=header(); if(h.startsWith(hd)) h=hd+`<div class="lay ${S.view==='quiz'?'quiz':''}">${sidebar()}<div class="ct">${h.slice(hd.length)}</div></div>`;
   h=h.replace(/§(\w+)§/g,(m,k)=>IC[k]?`<svg class="ii" viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`:'');
   $.innerHTML=h+(S.zoom?`<div class="zoom" data-a="unzoom"><div class="zbar"><button class="zb" data-a="zk" data-v="-1" aria-label="Réduire">${ico('minus')}</button><button class="zb" data-a="zk" data-v="1" aria-label="Agrandir">${ico('plus')}</button><button class="zb zx" data-a="unzoom" aria-label="Fermer">${ico('x',22)}</button></div><img src="${S.zoom.startsWith('url:')?S.zoom.slice(4):cimg(S.zoom)}" alt="Agrandissement" style="width:${S.zk||100}%;${(S.zk||100)>100?'max-width:none':''}" data-a="noop"><p class="zhint">Échap ou ✕ pour fermer</p></div>`:'');
@@ -1020,6 +1073,7 @@ function render(keep){
   const st=document.getElementById('strip'); if(st){ const c=st.querySelector('.cur'); if(c) st.scrollLeft=c.offsetLeft-st.clientWidth/2; }
   const sd=document.querySelector('.side .lst'); if(sd){ const c=sd.querySelector('.cur'); if(c&&(c.offsetTop<sd.scrollTop||c.offsetTop>sd.scrollTop+sd.clientHeight-40)) sd.scrollTop=c.offsetTop-sd.clientHeight/2; }
 }
+setInterval(()=>{ if(S.view==='quiz'&&S.sess&&!document.hidden){ const s=S.sess; s.spent=(s.spent||0)+5000; s.last=Date.now(); save(); } },5000);
 setInterval(()=>{ if(S.view!=='quiz'||!S.sess) return; const s=S.sess;
   const ts=document.getElementById('ts'), tq=document.getElementById('tq'), tg=document.getElementById('tg'), mt=document.getElementById('mt');
   if(ts) ts.textContent=fmt(Date.now()-s.start); if(tq) tq.textContent=fmt(Date.now()-s.qstart);
@@ -1130,6 +1184,17 @@ function act(a,v,el,ev){
     case 'favs': newSession([...S.fav].filter(k=>QI[k]),'Questions marquées'); return;
     case 'noted': newSession(Object.keys(S.notes).filter(k=>QI[k]),'Mes notes'); return;
     case 'reset': S.hist={}; LS.set('mt_hist',{}); render(true); return;
+    case 'sopen': { const x=sessList().find(y=>y.start===+v); if(!x) return; S.sess=x; S.sess.qstart=Date.now(); save(); S.view='quiz'; S.open=new Set(); render(); focusQ(); return; }
+    case 'sres': { const x=sessList().find(y=>y.start===+v); if(!x) return; S.sess=x; save(); S.view='end'; render(); scrollTo(0,0); return; }
+    case 'srep': S.srep=+v; S.sdel=null; render(true); return;
+    case 'srepx': S.srep=null; render(true); return;
+    case 'sstar': { const L=sessList(); const x=L.find(y=>y.start===+v); if(x){ x.star=!x.star; LS.set('mt_sessions',L); if(S.sess&&S.sess.start===x.start) S.sess.star=x.star; } render(true); return; }
+    case 'sdel': { if(S.sdel!==+v){ S.sdel=+v; render(true); return; } const L=sessList().filter(y=>y.start!==+v); LS.set('mt_sessions',L); if(S.sess&&S.sess.start===+v){ S.sess=L[0]||null; LS.set('mt_last',S.sess); } S.sdel=null; render(true); return; }
+    case 'sredo': { const x=sessList().find(y=>y.start===S.srep); S.srep=null; if(!x) return;
+      if(v==='reset'){ Object.assign(x,{i:0,ans:{},sel:{},finished:false,review:false,spent:0,qstart:Date.now(),end:x.mode==='exam'?Date.now()+x.ids.length*60000:0}); delete x.endAt; S.sess=x; save(); S.view='quiz'; S.open=new Set(); render(); scrollTo(0,0); return; }
+      const f={ok:i=>x.ans[i]&&x.ans[i].ok, ko:i=>x.ans[i]&&!x.ans[i].ok, un:i=>!x.ans[i], kun:i=>!(x.ans[i]&&x.ans[i].ok), all:()=>true}[v];
+      const lab={ok:'Justes',ko:'Fausses',un:'Non répondues',kun:'À revoir',all:'Reprise'}[v];
+      const prev=S.mode; S.mode=x.mode; newSession(x.ids.filter(f),lab+' · '+x.title); S.mode=prev; return; }
     case 'resume': if(S.sess){ S.view='quiz'; S.sess.qstart=Date.now(); render(); scrollTo(0,0);} return;
     case 'result': S.view='end'; render(); return;
     case 'home': S.view='home'; S.drop=null; render(); scrollTo(0,0); return;
