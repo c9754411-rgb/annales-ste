@@ -461,6 +461,7 @@ mark.rdhl{position:absolute;background:rgba(255,214,0,.45);border-radius:3px;mix
 .btn.mb.mx{background:var(--bad);color:#fff;border-color:var(--bad)}
 .btn.mb[disabled]{opacity:.4}
 .mor{text-align:center;color:var(--muted);font-size:.82rem;margin:10px 0 2px}
+.casebox summary{display:flex;align-items:center;gap:6px}.casebox .cst{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--muted)}
 </style>
 
 </head><body>
@@ -534,7 +535,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const rich=s=>esc(s).replace(/\[\[(.+?)\]\]/g,'<span class="kw">$1</span>').replace(/\*\*(.+?)\*\*/g,'<span class="bn">$1</span>');
 const fmt=ms=>{const s=Math.max(0,Math.floor(ms/1000));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(x).padStart(2,'0')};
 const isRF=q=>/\((C?RF)\)|\bRF\b|inexacte|est fausse|sauf|n.appartient pas|ne constitue pas|n.est pas|moins spécifique|moins directement|n.oriente pas/i.test(q.stem);
-const S={view:'home', theme:LS.get('mt_theme',null), sound:LS.get('mt_sound',true), by:LS.get('mt_by2','cours'), fcs:LS.get('mt_fcs',[]), fy:LS.get('mt_fy',''), fe:LS.get('mt_fe2','2026b'), ft:LS.get('mt_ft','all'),
+const S={caseQ:{}, caseAuto:LS.get('mt_caseauto',true), view:'home', theme:LS.get('mt_theme',null), sound:LS.get('mt_sound',true), by:LS.get('mt_by2','cours'), fcs:LS.get('mt_fcs',[]), fy:LS.get('mt_fy',''), fe:LS.get('mt_fe2','2026b'), ft:LS.get('mt_ft','all'),
   mode:LS.get('mt_mode','rev'), dur:LS.get('mt_dur',0), order:LS.get('mt_order2','annee'), eorder:LS.get('mt_eorder','exam'), hist:LS.get('mt_hist',{}), fav:new Set(LS.get('mt_fav',[])), notes:LS.get('mt_notes',{}),
   drop:null, dq:'', zoom:null, sess:LS.get('mt_last',null), open:new Set(), hideT:new Set(), shownote:false, hl:LS.get('mt_hl',{}), noside:LS.get('mt_noside',false), sbOpen:false, sbMini:LS.get('mt_sbmini',false), pen:null, hlbar:false, hlc:LS.get('mt_hlc','#ffe066'), flk:LS.get('mt_flk',{}), fdeck:LS.get('mt_fdeck','exam'), fdir:LS.get('mt_fdir','num'), fl:null};
 if(!Array.isArray(S.fcs)) S.fcs=[];
@@ -627,6 +628,7 @@ function sidebar(){
    ${it('nav','docs','pdf','Documents PDF',v==='docs')}
    <div class="sep"></div>
    ${it('theme','','moon',isDark()?'Thème clair':'Thème sombre',false)}
+   ${it('caseauto','','clip',(S.caseAuto?'✓ ':'')+'Masquer le cas après Q1',S.caseAuto)}
    <div class="grp">Couleurs</div>
    <div class="accs">${[['','#2d2a78','Classique'],['rose','#ec4899','Rose'],['violet','#8b5cf6','Violet'],['vert','#10b981','Vert'],['ocean','#0ea5e9','Océan'],['rouge','#e11d48','Bordeaux'],['noir','#374151','Graphite']].map(([k,c,n])=>`<button data-a="acc" data-v="${k}" class="${(S.acc||'')===k?'on':''}" style="background:${c}" title="${n}" aria-label="Thème ${n}"></button>`).join('')}</div>
    <div class="grp">Changer d'appareil</div>
@@ -951,8 +953,8 @@ function caseHTML(q){
   const lines=DATA.cases[q.case]||[]; const s=S.sess; const prev=s.ids[s.i-1]&&QI[s.ids[s.i-1]];
   const first=!prev||prev.case!==q.case;
   const body=lines.map(l=>l.img!==undefined?(CAPS['img:'+l.img]?`<div class="cap"><img src="${cimg('img:'+l.img)}" data-a="zoom" data-v="img:${l.img}" alt="Audiogramme"></div>`:''):l.p!==undefined?`<p>${rich(l.p)}</p>`:`<div class="tscroll"><table class="t">${l.tbl.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('');
-  const open = first || S.openCase===q.case || (S.hl['case:'+q.case]||[]).length;
-  return `<details class="casebox" ${open?'open':''} data-case="${q.case}"><summary>§clip§ ${first?'Énoncé du cas clinique':'Cas clinique ▾'}</summary><div class="hlz" data-hk="case:${q.case}">${body}</div></details>`;
+  const u=S.caseQ[q.id]; const open = u!==undefined ? u : (first || !S.caseAuto);
+  return `<details class="casebox" ${open?'open':''} data-case="${q.case}" data-q="${q.id}"><summary>§clip§ Énoncé du cas clinique <span class="cst">${open?'▴ masquer':'▾ afficher'}</span></summary><div class="hlz" data-hk="case:${q.case}">${body}</div></details>`;
 }
 function vQuiz(){
   const s=S.sess, q=cur(), n=s.ids.length, corr=showCorr(), a=s.ans[q.id];
@@ -1111,7 +1113,7 @@ function autoPen(){ if(!S.pen||S.pen==='erase'||S.view!=='quiz') return; setTime
 document.addEventListener('mouseup',e=>{ if(e.pointerType!=='touch') autoPen(); });
 document.addEventListener('pointerdown',e=>{ if(e.target.closest('.hlbar .sw')) e.preventDefault(); });
 document.addEventListener('click',e=>{ const m=e.target.closest('mark.hl'); if(m&&S.pen==='erase'){ e.stopPropagation(); e.preventDefault(); const L=S.hl[m.dataset.hk]; if(L){ L.splice(+m.dataset.i,1); if(!L.length) delete S.hl[m.dataset.hk]; LS.set('mt_hl',S.hl); } render(true); } },true);
-document.addEventListener('toggle',e=>{ const d=e.target; if(d.classList&&d.classList.contains('casebox')) S.openCase=d.open?d.dataset.case:null; },true);
+document.addEventListener('toggle',e=>{ const d=e.target; if(d.classList&&d.classList.contains('casebox')){ S.caseQ[d.dataset.q]=d.open; const t=d.querySelector('.cst'); if(t) t.textContent=d.open?'▴ masquer':'▾ afficher'; } },true);
 /* gestes : glisser à gauche / droite */
 let TS=null;
 document.addEventListener('touchstart',e=>{ if(e.touches.length!==1||S.zoom) { TS=null; return; } const t=e.touches[0];
@@ -1122,7 +1124,7 @@ document.addEventListener('touchend',e=>{ if(!TS) return; const t=e.changedTouch
 /* en-tête : se cache en descendant, réapparaît en remontant */
 let LY=0; window.addEventListener('scroll',()=>{ const y=scrollY, b=document.body; if(y<60||S.sbOpen) b.classList.remove('hh'); else if(y>LY+8) b.classList.add('hh'); else if(y<LY-8) b.classList.remove('hh'); LY=y; },{passive:true});
 window.addEventListener('popstate',()=>{ if(S.zoom){ S.zoom=null; render(true); } });
-function go(i){ const s=S.sess; s.i=Math.max(0,Math.min(s.ids.length-1,i)); s.qstart=Date.now(); S.open=new Set(); S.shownote=false; save(); render(); focusQ(); }
+function go(i){ const s=S.sess; s.i=Math.max(0,Math.min(s.ids.length-1,i)); s.qstart=Date.now(); S.open=new Set(); S.caseQ={}; S.shownote=false; save(); render(); focusQ(); }
 function focusQ(){ const c=document.querySelector('.qz main > .card'); if(!c){ scrollTo(0,0); return; } const y=c.getBoundingClientRect().top+scrollY-8; if(y>40){ document.body.classList.add('hh'); scrollTo(0,y); LY=scrollY; } else scrollTo(0,0); }
 function act(a,v,el,ev){
   const s=S.sess;
@@ -1186,6 +1188,7 @@ function act(a,v,el,ev){
     case 'reset': S.hist={}; LS.set('mt_hist',{}); render(true); return;
     case 'sopen': { const x=sessList().find(y=>y.start===+v); if(!x) return; S.sess=x; S.sess.qstart=Date.now(); save(); S.view='quiz'; S.open=new Set(); render(); focusQ(); return; }
     case 'sres': { const x=sessList().find(y=>y.start===+v); if(!x) return; S.sess=x; save(); S.view='end'; render(); scrollTo(0,0); return; }
+    case 'caseauto': S.caseAuto=!S.caseAuto; LS.set('mt_caseauto',S.caseAuto); S.caseQ={}; toast(S.caseAuto?'L’énoncé du cas sera masqué à partir de la 2e question':'L’énoncé du cas restera toujours affiché'); render(true); return;
     case 'srep': S.srep=+v; S.sdel=null; render(true); return;
     case 'srepx': S.srep=null; render(true); return;
     case 'sstar': { const L=sessList(); const x=L.find(y=>y.start===+v); if(x){ x.star=!x.star; LS.set('mt_sessions',L); if(S.sess&&S.sess.start===x.start) S.sess.star=x.star; } render(true); return; }
