@@ -443,7 +443,7 @@ mark.rdhl{position:absolute;background:rgba(255,214,0,.45);border-radius:3px;mix
 .scard{margin:0!important}
 .sch{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .sch b{display:block;font-size:1.02rem;line-height:1.3}.sch span{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
-.ib{border:0;background:none;font-size:1.4rem;line-height:1;color:var(--orange);cursor:pointer;padding:2px 4px}
+.sst{border:0;background:none;font-size:1.4rem;line-height:1;color:var(--orange);cursor:pointer;padding:2px 4px}
 .scb{display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap}
 .scb .donut{width:120px;font-size:.95rem}
 .scr{flex:1;min-width:190px}
@@ -462,6 +462,34 @@ mark.rdhl{position:absolute;background:rgba(255,214,0,.45);border-radius:3px;mix
 .btn.mb[disabled]{opacity:.4}
 .mor{text-align:center;color:var(--muted);font-size:.82rem;margin:10px 0 2px}
 .casebox summary{display:flex;align-items:center;gap:6px}.casebox .cst{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--muted)}
+#calc{position:fixed;right:16px;bottom:16px;z-index:70;width:min(300px,calc(100vw - 32px));background:var(--surface);color:var(--ink);border-radius:16px;box-shadow:0 14px 40px rgba(10,12,30,.35);border:1.5px solid var(--line);padding:12px;display:none}
+#calc.show{display:block}
+#calc .chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+#calc .cx{border:0;background:var(--surface2);border-radius:8px;width:30px;height:30px;font-weight:900;color:var(--ink)}
+#calc .chi{min-height:1.2em;font-size:.8rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+#calc input{width:100%;box-sizing:border-box;font-size:1.5rem;font-weight:800;text-align:right;padding:.35em .5em;border-radius:10px;border:1.5px solid var(--line);background:var(--surface2);color:var(--ink);margin:4px 0 8px;font-variant-numeric:tabular-nums}
+#calc input.err{border-color:var(--bad)}
+#calc .ckeys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+#calc .ckeys button{border:0;border-radius:10px;padding:.7em 0;font-size:1.1rem;font-weight:800;background:var(--surface2);color:var(--ink)}
+#calc .ckeys .op{background:color-mix(in srgb,var(--acc3) 18%,var(--surface2));color:var(--navy2)}
+#calc .ckeys .eq{background:var(--good);color:#fff}
+#calc .ckeys .cl{color:var(--bad)}
+:root[data-theme="dark"] #calc .ckeys .op{color:#c9c6ff}
+.ib.calcb{font-size:1.05rem}
+#calc .chd{cursor:move;touch-action:none;user-select:none} #calc .chd small{font-weight:500;color:var(--muted);font-size:.72rem}
+@media(max-width:620px){#calc{width:240px;padding:9px;right:10px;bottom:10px}#calc .ckeys{gap:4px}#calc .ckeys button{padding:.45em 0;font-size:1rem}#calc input{font-size:1.2rem;margin:2px 0 6px}}
+.ib.kbq{font-weight:900;font-size:1rem;color:#8a8fa8;background:var(--surface2)}
+.ib.kbq.on{color:var(--ink)}
+.kbp{position:fixed;inset:0;z-index:75;background:rgba(10,12,30,.4);display:grid;place-items:center;padding:16px}
+.kbbox{background:var(--surface);color:var(--ink);border-radius:16px;padding:18px 20px;width:min(100%,460px);box-shadow:0 18px 50px rgba(0,0,0,.3)}
+.kbh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.kbh b{font-size:1.1rem}
+.cx2{border:0;background:var(--surface2);border-radius:8px;width:30px;height:30px;font-weight:900;color:var(--ink)}
+.kbr{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:.95rem}
+.kbr>span{flex:none;min-width:150px;display:flex;gap:4px;flex-wrap:wrap}
+.kbr small{color:var(--muted)}
+kbd{display:inline-block;min-width:1.6em;text-align:center;padding:.15em .45em;border-radius:6px;border:1px solid var(--line);border-bottom-width:3px;background:var(--surface2);font:700 .85rem/1.3 Roboto,system-ui,sans-serif;color:var(--ink)}
+@media(max-width:620px){.kbr{flex-direction:column;align-items:flex-start;gap:4px}.kbr>span{min-width:0}}
+.comm .wrem{margin:0 0 12px;border-left:4px solid var(--orange)}
 </style>
 
 </head><body>
@@ -948,6 +976,44 @@ function hlBar(){
 }
 
 function statusOf(id){ const s=S.sess, a=s.ans[id]; if(showCorr()&&a) return a.ok?'ok':'ko'; if(a||(s.sel[id]&&((s.sel[id].ch&&s.sel[id].ch.length)||(s.sel[id].m&&Object.keys(s.sel[id].m).length)))) return 'an'; return ''; }
+const isCalc=q=>q.c==='bruit'&&/déficit auditif (de|moyen|réglementaire)|valeurs correctes du DA|calcul du déficit/i.test(q.stem);
+function calcOpen(){
+  let c=document.getElementById('calc'); if(c){ c.classList.add('show'); c.querySelector('input').focus(); return; }
+  c=document.createElement('div'); c.id='calc'; c.className='show';
+  const K=['7','8','9','÷','C','4','5','6','×','⌫','1','2','3','−','(','0',',','=','+',')'];
+  c.innerHTML=`<div class="chd"><b>🧮 Calculatrice <small>· déplacer</small></b><button class="cx" data-k="x" aria-label="Fermer">✕</button></div><div class="chi"></div><input inputmode="none" autocomplete="off" aria-label="Calcul" placeholder="0"><div class="ckeys">${K.map(k=>`<button data-k="${k}" class="${'÷×−+'.includes(k)?'op':k==='='?'eq':k==='C'||k==='⌫'?'cl':''}">${k}</button>`).join('')}</div>`;
+  document.body.appendChild(c);
+  const inp=c.querySelector('input'), hi=c.querySelector('.chi'); const H=[];
+  if(!matchMedia('(pointer:coarse)').matches) inp.removeAttribute('inputmode');
+  const ev=()=>{ const raw=inp.value.trim(); if(!raw) return; const e=raw.replace(/×|x/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/,/g,'.');
+    if(!/^[0-9+\-*/(). ]+$/.test(e)){ inp.classList.add('err'); return; }
+    let r; try{ r=Function('"use strict";return ('+e+')')(); }catch(_){ inp.classList.add('err'); return; }
+    if(!isFinite(r)){ inp.classList.add('err'); return; }
+    r=Math.round(r*10000)/10000; const out=String(r).replace('.',','); H.unshift(raw+' = '+out); H.length=Math.min(H.length,3);
+    hi.innerHTML=H.map(h=>`<div>${h.replace(/</g,'&lt;')}</div>`).join(''); inp.value=out; };
+  c.addEventListener('click',e=>{ const b=e.target.closest('[data-k]'); if(!b) return; e.stopPropagation(); const k=b.dataset.k; inp.classList.remove('err');
+    if(k==='x'){ c.classList.remove('show'); return; } if(k==='C'){ inp.value=''; } else if(k==='⌫'){ inp.value=inp.value.slice(0,-1); } else if(k==='='){ ev(); } else inp.value+=k;
+    if(!matchMedia('(pointer:coarse)').matches) inp.focus(); });
+  const hd=c.querySelector('.chd'); let dr=null;
+  hd.addEventListener('pointerdown',e=>{ if(e.target.closest('[data-k]')) return; const r=c.getBoundingClientRect(); dr={x:e.clientX-r.left,y:e.clientY-r.top}; hd.setPointerCapture(e.pointerId); });
+  hd.addEventListener('pointermove',e=>{ if(!dr) return; const x=Math.max(4,Math.min(innerWidth-c.offsetWidth-4,e.clientX-dr.x)), y=Math.max(4,Math.min(innerHeight-c.offsetHeight-4,e.clientY-dr.y)); Object.assign(c.style,{left:x+'px',top:y+'px',right:'auto',bottom:'auto'}); });
+  hd.addEventListener('pointerup',()=>{ dr=null; });
+  inp.addEventListener('keydown',e=>{ e.stopPropagation(); inp.classList.remove('err'); if(e.key==='Enter'){ e.preventDefault(); ev(); } else if(e.key==='Escape'){ c.classList.remove('show'); } });
+  inp.focus();
+}
+const kbdHTML=()=>!S.kbd?'':`<div class="kbp" data-a="kbd"><div class="kbbox" data-a="nop"><div class="kbh"><b>Raccourcis clavier</b><button class="cx2" data-a="kbd" aria-label="Fermer">✕</button></div>
+ <div class="kbr"><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></span><div>cocher ou décocher une proposition <small>(ou les lettres A à E)</small></div></div>
+ <div class="kbr"><span><kbd>Entrée</kbd></span><div>valider la réponse, puis passer à la question suivante</div></div>
+ <div class="kbr"><span><kbd>←</kbd><kbd>→</kbd></span><div>question précédente / suivante</div></div>
+ <div class="kbr"><span><kbd>Échap</kbd></span><div>quitter le plein écran, fermer une image agrandie ou la calculatrice</div></div>
+ <div class="kbr"><span>👆</span><div>sur téléphone ou tablette : glisser à gauche ou à droite pour changer de question</div></div></div></div>`;
+/* remarques : seule la mention d'illisibilité s'affiche avant la réponse */
+function warnSplit(q){ const pre=[], post=[];
+  for(const w of (q.warn||[])){
+    if(/illisib/i.test(w)){ const m=w.match(/^(.*?illisib[^;:]*?)\s*[;:]\s*(.+)$/i);
+      if(m){ pre.push(m[1].replace(/[\s.]*$/,'')+'.'); post.push(m[2].charAt(0).toUpperCase()+m[2].slice(1)); } else pre.push(w); }
+    else post.push(w); }
+  return [pre,post]; }
 function caseHTML(q){
   if(!q.case) return '';
   const lines=DATA.cases[q.case]||[]; const s=S.sess; const prev=s.ids[s.i-1]&&QI[s.ids[s.i-1]];
@@ -973,13 +1039,13 @@ function vQuiz(){
    <div class="card">
     <div class="qhead"><div class="tt"><div class="qtitle">Question n° ${s.i+1} :</div>
       <div class="pills"><span class="pill ${q.fmt==='Association'?'v':''}">${q.fmt}</span>${isRF(q)?'<span class="pill rf">Réponse fausse</span>':''}<span class="pill">${esc(CN[q.c])}</span><span class="pill">${esc(q.label)} · Q${q.n}</span>${(q.rep||[]).map(r=>`<span class="pill rep" title="Question répétée"><b>↻</b> ${esc(EN[r[0]])} · Q${r[1]}</span>`).join('')}${q.case?'<span class="pill o">Cas clinique</span>':''}</div></div>
-      <div class="icons"><button class="ib ${S.hlbar?'on':''}" data-a="hlbar" title="Surligner" aria-label="Surligneur">${ico('hl',18)}</button><button class="ib ${S.fav.has(q.id)?'on':''}" data-a="fav" title="Marquer" aria-label="Marquer la question">${ico('mark',18)}</button><button class="ib ${S.notes[q.id]?'on':''}" data-a="note" title="Note" aria-label="Ajouter une note">${ico('note',18)}</button></div></div>
+      <div class="icons"><button class="ib kbq ${S.kbd?'on':''}" data-a="kbd" title="Raccourcis clavier" aria-label="Raccourcis clavier">?</button>${isCalc(q)?`<button class="ib calcb" data-a="calc" title="Calculatrice" aria-label="Ouvrir la calculatrice">🧮</button>`:''}<button class="ib ${S.hlbar?'on':''}" data-a="hlbar" title="Surligner" aria-label="Surligneur">${ico('hl',18)}</button><button class="ib ${S.fav.has(q.id)?'on':''}" data-a="fav" title="Marquer" aria-label="Marquer la question">${ico('mark',18)}</button><button class="ib ${S.notes[q.id]?'on':''}" data-a="note" title="Note" aria-label="Ajouter une note">${ico('note',18)}</button></div></div>
     ${S.hlbar?hlBar():''}
     ${caseHTML(q)}
     ${(q.imgs||[]).map(k=>CAPS['img:'+k]?`<div class="cap"><img src="${cimg('img:'+k)}" data-a="zoom" data-v="img:${k}" alt="Document de la question"></div>`:'').join('')}
     ${(q.tables||[]).map(t=>`<div class="tscroll" style="margin-top:8px"><table class="t">${t.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('')}
     <div class="stem hlz" data-hk="st:${q.id}">${rich(q.stem)}</div>
-    ${(q.warn||[]).length?`<div class="note">${q.warn.map(esc).join(' ')}</div>`:''}`;
+    ${warnSplit(q)[0].length?`<div class="note">${warnSplit(q)[0].map(esc).join(' ')}</div>`:''}`;
   if(q.type==='match'){
     h+=`<div class="legend">${q.right.map(([k,t])=>`<span><b>${esc(k==='0'?'∅':k)}</b>${esc(t)}</span>`).join('')}</div><div class="opts">`;
     for(const [L,t] of q.left){
@@ -1011,7 +1077,7 @@ function vQuiz(){
   if(S.shownote) h+=`<div class="notes"><textarea id="notearea" placeholder="Ma note sur cette question…">${esc(S.notes[q.id]||'')}</textarea></div>`;
   h+=`</div>`;
   if(done){
-    h+=`<div class="card comm"><h3>§msg§ Commentaire :</h3><div class="gx">${noteHTML(q.g)}</div>`;
+    { const wa=warnSplit(q)[1]; h+=`<div class="card comm"><h3>§msg§ Commentaire :</h3>${wa.length?`<div class="note wrem"><b>Remarque :</b> ${wa.map(rich).join(' ')}</div>`:''}<div class="gx">${noteHTML(q.g)}</div>`; }
     if(q.cs) h+=`<div class="csum"><b class="h">§pdf§ Résumé du cas clinique</b>${rich(q.cs)}</div>`;
     if((q.o||[]).length) h+=`<div class="cap"><div class="lbl" style="margin-top:12px">§bookopen§ Cours officiel · ${authOf(q.c)} <span style="text-transform:none;letter-spacing:0;font-weight:400">· ${q.o.map(x=>'p. '+x[1]).join(', ')} · toucher pour agrandir</span></div>${q.o.map(([src,pg])=>`<img loading="lazy" src="${src}" data-a="zoom" data-v="url:${src}" alt="Cours officiel, page ${pg}">`).join('')}</div>`;
     if(q.s.length) h+=`<details class="cap poly" ${(q.o||[]).length?'':'open'}><summary class="lbl" style="margin-top:12px;cursor:pointer">§pdf§ Résumé · polycopié Dr S. LEBOUABI 2026-2027 ▾</summary>${q.s.map(k=>CAPS['s:'+k]?`<img loading="lazy" src="${cimg('s:'+k)}" data-a="zoom" data-v="s:${k}" alt="Extrait du polycopié">`:'').join('')}</details>`;
@@ -1027,7 +1093,7 @@ function vSessions(){
   const cards=L.map(x=>{ const t=sessStat(x), pct=Math.round(t.g/t.n*100);
     return `<div class="card scard">
      <div class="sch"><div><b>${esc(x.title)}</b><span>${d(x.start)} · ${x.mode==='exam'?'Mode examen':'Mode révision'}${x.finished?' · terminée':''}</span></div>
-      <button class="ib ${x.star?'on':''}" data-a="sstar" data-v="${x.start}" title="Favorite">${x.star?'★':'☆'}</button></div>
+      <button class="sst" data-a="sstar" data-v="${x.start}" title="Favorite">${x.star?'★':'☆'}</button></div>
      <div class="scb"><div class="donut" style="--g:${t.g/t.n*100};--r:${t.r/t.n*100}"><div><div>${t.g}/${t.n}<br>${pct} %</div></div></div>
       <div class="scr"><div class="sct">${fmt(x.spent||0)}</div><div class="muted" style="font-size:.8rem">${t.a}/${t.n} répondues · <span style="color:var(--good)">${t.g} juste${t.g>1?'s':''}</span> · <span style="color:var(--bad)">${t.r} fausse${t.r>1?'s':''}</span></div>
        <div class="row" style="margin-top:10px;gap:8px"><button class="btn green" data-a="sopen" data-v="${x.start}">§play§ ${x.finished?'Revoir':'Continuer'}</button><button class="btn" data-a="srep" data-v="${x.start}">↻ Répéter</button>${t.a?`<button class="btn" data-a="sres" data-v="${x.start}">§chart§</button>`:''}<button class="btn ghost" data-a="sdel" data-v="${x.start}" title="Supprimer">${S.sdel===x.start?'Confirmer ?':'🗑'}</button></div></div></div></div>`; }).join('');
@@ -1060,7 +1126,8 @@ function vEnd(){
   <div class="foot">© BABAAISSA Zakaria</div></div>`;
 }
 function render(keep){
-  const y=scrollY; let h=S.view==='home'?vHome():S.view==='quiz'?vQuiz():S.view==='stats'?vStats():S.view==='courses'?vCourses():S.view==='flash'?vFlash():S.view==='mastery'?vMastery():S.view==='docs'?vDocs():S.view==='search'?vSearch():S.view==='reader'?vReader():S.view==='sessions'?vSessions():vEnd();
+  { const cc=document.getElementById('calc'); if(cc&&S.view!=='quiz') cc.classList.remove('show'); }
+  const y=scrollY; let h=S.view==='home'?vHome():S.view==='quiz'?vQuiz():S.view==='stats'?vStats():S.view==='courses'?vCourses():S.view==='flash'?vFlash():S.view==='mastery'?vMastery():S.view==='docs'?vDocs():S.view==='search'?vSearch():S.view==='reader'?vReader():S.view==='sessions'?vSessions():vEnd(); if(S.view==='quiz') h+=kbdHTML();
   const hd=header(); if(h.startsWith(hd)) h=hd+`<div class="lay ${S.view==='quiz'?'quiz':''}">${sidebar()}<div class="ct">${h.slice(hd.length)}</div></div>`;
   h=h.replace(/§(\w+)§/g,(m,k)=>IC[k]?`<svg class="ii" viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`:'');
   $.innerHTML=h+(S.zoom?`<div class="zoom" data-a="unzoom"><div class="zbar"><button class="zb" data-a="zk" data-v="-1" aria-label="Réduire">${ico('minus')}</button><button class="zb" data-a="zk" data-v="1" aria-label="Agrandir">${ico('plus')}</button><button class="zb zx" data-a="unzoom" aria-label="Fermer">${ico('x',22)}</button></div><img src="${S.zoom.startsWith('url:')?S.zoom.slice(4):cimg(S.zoom)}" alt="Agrandissement" style="width:${S.zk||100}%;${(S.zk||100)>100?'max-width:none':''}" data-a="noop"><p class="zhint">Échap ou ✕ pour fermer</p></div>`:'');
@@ -1189,6 +1256,8 @@ function act(a,v,el,ev){
     case 'sopen': { const x=sessList().find(y=>y.start===+v); if(!x) return; S.sess=x; S.sess.qstart=Date.now(); save(); S.view='quiz'; S.open=new Set(); render(); focusQ(); return; }
     case 'sres': { const x=sessList().find(y=>y.start===+v); if(!x) return; S.sess=x; save(); S.view='end'; render(); scrollTo(0,0); return; }
     case 'caseauto': S.caseAuto=!S.caseAuto; LS.set('mt_caseauto',S.caseAuto); S.caseQ={}; toast(S.caseAuto?'L’énoncé du cas sera masqué à partir de la 2e question':'L’énoncé du cas restera toujours affiché'); render(true); return;
+    case 'calc': calcOpen(); return;
+    case 'kbd': S.kbd=!S.kbd; render(true); return;
     case 'srep': S.srep=+v; S.sdel=null; render(true); return;
     case 'srepx': S.srep=null; render(true); return;
     case 'sstar': { const L=sessList(); const x=L.find(y=>y.start===+v); if(x){ x.star=!x.star; LS.set('mt_sessions',L); if(S.sess&&S.sess.start===x.start) S.sess.star=x.star; } render(true); return; }
@@ -1244,6 +1313,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='/'&&S.view!=='quiz'&&!(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')){e.preventDefault();act('nav','search');return}
   if(S.sbOpen&&e.key==='Escape'){S.sbOpen=false;render(true);return}
   if(S.zoom&&(e.key==='Escape'||e.key==='Esc')){e.preventDefault();act('unzoom');return}
+  if(S.kbd&&(e.key==='Escape'||e.key==='?')){S.kbd=false;render(true);return}
+  if(e.key==='?'&&S.view==='quiz'){S.kbd=true;render(true);return}
   if(S.view==='flash'&&S.fl){ if(e.key===' '||e.key==='Enter'){e.preventDefault();act('fflip');return} if(e.key==='ArrowRight'){act('fnext');return} if(e.key==='ArrowLeft'){act('fprev');return}
     if(S.fl.flip&&(e.key==='1'||e.key==='2')){act('fgrade',e.key==='1'?'ko':'ok');return} return; }
   if(S.view!=='quiz') return; const q=cur();
