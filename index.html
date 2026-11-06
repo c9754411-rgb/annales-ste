@@ -513,6 +513,14 @@ kbd{display:inline-block;min-width:1.6em;text-align:center;padding:.15em .45em;b
 .cbt.cgood:hover,.cbt.cbad:hover,.cbt.cdim:hover{transform:none}
 @media(max-width:860px){.cbbar{margin-top:11px}.cbs{width:100%;gap:6px}.cbt{min-width:0;flex:0 1 auto;padding:7px 10px}.cbt b{font-size:.84rem;letter-spacing:0}}
 @media(max-width:420px){.cbs{gap:5px}.cbt{padding:6px 8px}.cbt b{font-size:.78rem}}
+/* mots-clés des commentaires accordés au thème choisi */
+:root{--bn:var(--navy2)}
+:root[data-theme="dark"]{--bn:#9fa9f5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bn:#9fa9f5}}
+:root[data-acc]{--bn:var(--navy2)}
+:root[data-theme="dark"][data-acc]{--bn:var(--acc3)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-acc]{--bn:var(--acc3)}}
+:root .opt.ok .why .bn,:root .opt.ko .why .bn{color:var(--navy2)}
 </style>
 
 </head><body>
